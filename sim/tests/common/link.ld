@@ -16,9 +16,8 @@ STACK_SIZE = 1024;
 CL_SIZE = 32;
 
 SECTIONS {
-
-  /* code segment */
-  .text.init 0 : { 
+  /* Специальные метки симулятора в начале памяти */
+  .sim_controls 0x0 : {
     FILL(0);
     . = 0x100 - 12;
     SIM_EXIT = .;
@@ -26,9 +25,22 @@ SECTIONS {
     SIM_STOP = .;
     LONG(0x6F);
     LONG(-1);
-    . = 0x100;
+  } >RAM
+
+  /* Код инициализации размещаем до 0x200 */
+  .text.init 0x110 : {  /* Начинаем после блока управления симулятором */
     PROVIDE(__TEXT_START__ = .);
-    *(.text.init) 
+    *(.text.init)
+    . = ALIGN(4);  /* Выравнивание */
+    /* Убеждаемся, что не выходим за 0x200 */
+    ASSERT(. <= 0x200, "Error: .text.init overlaps .text.start at 0x200");
+  } >RAM
+
+
+  .text.start 0x200: {
+    PROVIDE(__TEXT_END__ = .);
+    PROVIDE(__TEXT_START__ = .);
+    *(.text.start) 
   } >RAM
 
   .text  : {
