@@ -16,8 +16,8 @@ STACK_SIZE = 1024;
 CL_SIZE = 32;
 
 SECTIONS {
-  /* Специальные метки симулятора в начале памяти */
-  .sim_controls 0x0 : {
+  /* Служебные данные и начало кода */
+  .text.init 0x0 : {
     FILL(0);
     . = 0x100 - 12;
     SIM_EXIT = .;
@@ -25,23 +25,20 @@ SECTIONS {
     SIM_STOP = .;
     LONG(0x6F);
     LONG(-1);
+    
+    /* _start будет на 0x200 */
+    . = 0x200;
+    *(.text.start)  /* Сюда попадет _start */
   } >RAM
 
-  /* Код инициализации размещаем до 0x200 */
-  .text.init 0x110 : {  /* Начинаем после блока управления симулятором */
-    PROVIDE(__TEXT_START__ = .);
-    *(.text.init)
-    . = ALIGN(4);  /* Выравнивание */
-    /* Убеждаемся, что не выходим за 0x200 */
-    ASSERT(. <= 0x200, "Error: .text.init overlaps .text.start at 0x200");
+  /* trap_vector будет на 0x400 */
+  .text.trap 0x400 : {
+    *(.text.init)  /* Сюда попадет trap_vector */
   } >RAM
 
+  PROVIDE(__TEXT_START__ = 0x200);
+  PROVIDE(__TEXT_END__ = .);
 
-  .text.start 0x200: {
-    PROVIDE(__TEXT_END__ = .);
-    PROVIDE(__TEXT_START__ = .);
-    *(.text.start) 
-  } >RAM
 
   .text  : {
     *crt.o(.text .text.*)
